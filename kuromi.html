@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud's Personal Timer</title>
+
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Comic Sans MS', cursive;
+  position: relative;
+  overflow: hidden;
+}
+
+#bg-fade {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background-size: cover;
+  background-position: center;
+  transition: opacity .5s ease-in-out;
+  z-index: -2;
+}
+
+#dark-overlay {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.5);
+  z-index: -1;
+}
+
+.container {
+  padding: 30px 20px;
+  width: 420px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+#timer-display {
+  font-size: 5rem;
+  font-weight: bold;
+  color: #ff77ff;
+  text-shadow: 0 0 8px #ff77ff, 0 0 20px #d6336c;
+  margin-bottom: 25px;
+}
+
+.modes, .controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modes button, .controls button {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #ff77ff;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex: 1;
+  margin: 0 3px;
+  transition: 0.3s;
+}
+
+.modes button:hover, .controls button:hover {
+  box-shadow: 0 0 20px #ff77ffaa, 0 0 40px #d6336c77;
+}
+
+.modal {
+   display:none;
+   position:fixed;
+   inset:0;
+   background:rgba(0,0,0,0.4);
+   backdrop-filter: blur(6px);
+   justify-content:center;
+   align-items:center;
+   z-index:10;
+  }
+
+.modal-content {
+   background: transparent;
+   width: 450px;
+   padding: 30px;
+   border-radius: 10px;
+   position: relative;
+   backdrop-filter: blur(8px);
+   text-align:center;
+  }
+
+.modal-content h2 {
+   margin-bottom:20px;
+   color:#ff77ffaa;
+  }
+
+.time-set {
+   margin-bottom:25px;
+   text-align:center;
+  }
+
+.time-set p {
+   color:#ff77ffaa;
+   margin-bottom:10px;
+   font-weight:bold;
+  }
+
+.time-box {
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   gap:15px;
+  }
+
+.time-display {
+   font-size:2.5rem;
+   font-weight:bold;
+   color:#ff77ff;
+   text-shadow:0 0 8px #ff77ff,0 0 20px #d6336c;
+   min-width:120px;
+   outline:none;
+   cursor:text;
+  }
+.plus, .minus {
+   background:transparent;
+   border:2px solid #ff77ff;
+   color:white;
+   font-size:1.5rem;
+   width:45px;
+   height:45px;
+   border-radius:50%;
+   cursor:pointer;
+   transition:0.3s;
+  }
+
+.plus:hover, .minus:hover {
+   box-shadow:0 0 15px #ff77ffaa,0 0 30px #d6336c77;
+   transform:scale(1.1);
+  }
+
+.save-btn {
+   background:#ff77ffaa;
+   color:black;
+   border:none;
+   padding:12px 25px;
+   cursor:pointer;
+   float:right;
+   margin-top:10px;
+   border-radius:10px;
+   font-weight:bold; 
+  }
+
+#closeModal {
+   position:absolute;
+   right:15px;
+   top:10px;
+   font-size:24px;
+   cursor:pointer;
+   color:#fff;
+  }
+#kuromi-message {
+   position:fixed;
+   bottom:20px;
+   right:20px;
+   max-width:280px;
+   color:#fff;
+   padding:15px;
+   border-radius:15px;
+   font-size:0.9rem;
+  }
+
+#timesUpModal {
+   display:none;
+   position:fixed;
+   inset:0;
+   background: rgba(0,0,0,0.4);
+   backdrop-filter:blur(6px);
+   justify-content:center;
+   align-items:center;
+   z-index:50;
+  }
+#timesUpModal .modal-content {
+   width:400px;
+   padding:25px;
+   border-radius:15px;
+  }
+#timesUpModal button {
+   margin-top:15px;
+   background:#ff77ffaa;
+   color:black;
+   border:none;
+   padding:10px 20px;
+   border-radius:10px;
+   font-weight:bold;
+   cursor:pointer;
+   }
+
+</style>
+</head>
+
+<body>
+<div id="bg-fade"></div>
+<div id="dark-overlay"></div>
+
+<div class="container">
+  <div id="timer-display">25:00</div>
+  <div class="modes">
+    <button id="pomodoro">Pomodoro</button>
+    <button id="shortBreak">Short Break</button>
+    <button id="longBreak">Long Break</button>
+    <button id="loop">Loop</button>
+    <button id="custom">Custom</button>
+  </div>
+  <div class="controls">
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="reset">Reset</button>
+  </div>
+</div>
+
+<div id="kuromi-message">Focus properly, okay? I’m watching you. Don’t slack off. 💜</div>
+
+<div id="customModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal">&times;</span>
+    <h2>ENTER CUSTOM TIMER ✨</h2>
+
+    <div class="time-set">
+      <p>Pomodoro</p>
+      <div class="time-box">
+        <button class="minus" data-type="pomodoro">−</button>
+        <div class="time-display" id="pomodoroDisplay" contenteditable="true">25:00</div>
+        <button class="plus" data-type="pomodoro">+</button>
+      </div>
+    </div>
+
+    <div class="time-set">
+      <p>Short Break</p>
+      <div class="time-box">
+        <button class="minus" data-type="shortBreak">−</button>
+        <div class="time-display" id="shortDisplay" contenteditable="true">05:00</div>
+        <button class="plus" data-type="shortBreak">+</button>
+      </div>
+    </div>
+
+    <div class="time-set">
+      <p>Long Break</p>
+      <div class="time-box">
+        <button class="minus" data-type="longBreak">−</button>
+        <div class="time-display" id="longDisplay" contenteditable="true">15:00</div>
+        <button class="plus" data-type="longBreak">+</button>
+      </div>
+    </div>
+
+    <button id="saveCustom" class="save-btn">SAVE 💜</button>
+  </div>
+</div>
+
+<div id="timesUpModal" class="modal">
+  <div class="modal-content">
+    <h2>Time's Up! 💜</h2>
+    <button id="okBtn">OK</button>
+  </div>
+</div>
+
+<script>
+let intervalId=null, endTime=null, remainingOnPause=null, currentMode="pomodoro";
+let customTimes={pomodoro:25, shortBreak:5, longBreak:15}, totalSeconds=customTimes.pomodoro*60;
+
+const display=document.getElementById("timer-display");
+const startBtn=document.getElementById("start");
+const stopBtn=document.getElementById("stop");
+const resetBtn=document.getElementById("reset");
+const bgFade=document.getElementById("bg-fade");
+const messageBox=document.getElementById("kuromi-message");
+
+const modal=document.getElementById("customModal");
+const customBtn=document.getElementById("custom");
+const closeModal=document.getElementById("closeModal");
+const saveCustom=document.getElementById("saveCustom");
+
+const pomodoroDisplay=document.getElementById("pomodoroDisplay");
+const shortDisplay=document.getElementById("shortDisplay");
+const longDisplay=document.getElementById("longDisplay");
+
+const timesUpModal=document.getElementById("timesUpModal");
+const okBtn=document.getElementById("okBtn");
+
+const alarmSound=new Audio("sound/iphone_alarm.mp3");
+alarmSound.volume=0.3;
+
+const backgrounds={
+  pomodoro:'image/b9f24c435dd470b0cd65901ca20b2634.jpg',
+  shortBreak:'image/59e5d8053e10a551e365fe35be5207db.jpg',
+  longBreak:'image/854de9e2638b6f1216f5caa97fc1bc08.jpg',
+  loop:'image/b9f24c435dd470b0cd65901ca20b2634.jpg'
+};
+const originalBg='image/055e23658f797ad4c407e75c4cf353e6.jpg';
+bgFade.style.backgroundImage=`url('${originalBg}')`;
+
+const kuromiLines={
+  pomodoro:"Focus properly, okay? I’m watching you. Don’t slack off. 💜",
+  shortBreak:"Tch… fine. Take a short break. But don’t disappear on me. 💅",
+  longBreak:"You survived that? Not bad. Rest properly… you earned it. 🖤",
+  loop:"We’re looping again? Heh. I like that determination. Let’s go. 🔥"
+};
+
+function updateDisplay(sec){
+  const m=Math.floor(sec/60);
+  const s=sec%60;
+  display.textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+function updateKuromiMessage(mode){ messageBox.textContent=kuromiLines[mode]; }
+
+function tick(){
+  const remaining=Math.max(0,Math.floor((endTime-Date.now())/1000));
+  updateDisplay(remaining);
+  if(remaining<=0){
+    clearInterval(intervalId);
+    intervalId=null;
+    alarmSound.currentTime=0;
+    alarmSound.play();
+    timesUpModal.style.display="flex";
+  }
+}
+
+function setMode(mode){
+  currentMode=mode;
+  clearInterval(intervalId);
+  intervalId=null;
+  startBtn.disabled=false;
+  stopBtn.disabled=true;
+
+  if(mode=="pomodoro") totalSeconds=customTimes.pomodoro*60;
+  else if(mode=="shortBreak") totalSeconds=customTimes.shortBreak*60;
+  else if(mode=="longBreak") totalSeconds=customTimes.longBreak*60;
+  else if(mode=="loop") totalSeconds=customTimes.pomodoro*60;
+
+  updateDisplay(totalSeconds);
+  updateKuromiMessage(mode);
+}
+
+document.getElementById('pomodoro').onclick=()=>setMode("pomodoro");
+document.getElementById('shortBreak').onclick=()=>setMode("shortBreak");
+document.getElementById('longBreak').onclick=()=>setMode("longBreak");
+document.getElementById('loop').onclick=()=>setMode("loop");
+
+startBtn.onclick=()=>{
+  if(!intervalId){
+    if(remainingOnPause!==null){
+      endTime=Date.now()+remainingOnPause*1000;
+      remainingOnPause=null;
+    } else {
+      endTime=Date.now()+totalSeconds*1000;
+    }
+    intervalId=setInterval(tick,250);
+  }
+  startBtn.disabled=true;
+  stopBtn.disabled=false;
+  bgFade.style.opacity=0;
+  setTimeout(()=>{bgFade.style.backgroundImage=`url('${backgrounds[currentMode]}')`; bgFade.style.opacity=1;},500);
+  updateKuromiMessage(currentMode);
+};
+
+stopBtn.onclick=()=>{
+  clearInterval(intervalId);
+  intervalId=null;
+  remainingOnPause=Math.max(0,Math.floor((endTime-Date.now())/1000));
+  startBtn.disabled=false;
+  stopBtn.disabled=true;
+};
+
+resetBtn.onclick=()=>setMode(currentMode);
+
+customBtn.onclick=()=>modal.style.display="flex";
+closeModal.onclick=()=>modal.style.display="none";
+window.onclick=(e)=>{if(e.target===modal) modal.style.display="none";};
+
+function handleEditable(displayEl,type){
+  displayEl.addEventListener("keydown",(e)=>{if(e.key==="Enter"){ e.preventDefault(); displayEl.blur();}});
+  displayEl.addEventListener("blur",()=>{
+    let value=parseInt(displayEl.textContent);
+    if(isNaN(value)||value<1)value=1;
+    customTimes[type]=value;
+    displayEl.textContent=`${value.toString().padStart(2,'0')}:00`;
+  });
+}
+
+handleEditable(pomodoroDisplay,"pomodoro");
+handleEditable(shortDisplay,"shortBreak");
+handleEditable(longDisplay,"longBreak");
+
+function updateCustomDisplays(){
+  pomodoroDisplay.textContent=`${customTimes.pomodoro.toString().padStart(2,'0')}:00`;
+  shortDisplay.textContent=`${customTimes.shortBreak.toString().padStart(2,'0')}:00`;
+  longDisplay.textContent=`${customTimes.longBreak.toString().padStart(2,'0')}:00`;
+}
+
+document.querySelectorAll(".plus").forEach(btn=>{ btn.addEventListener("click",()=>{ const type=btn.dataset.type; customTimes[type]++; updateCustomDisplays();}); });
+document.querySelectorAll(".minus").forEach(btn=>{ btn.addEventListener("click",()=>{ const type=btn.dataset.type; if(customTimes[type]>1) customTimes[type]--; updateCustomDisplays();}); });
+
+saveCustom.addEventListener("click",()=>{ modal.style.display="none"; setMode(currentMode); });
+
+okBtn.onclick=()=>{ 
+  timesUpModal.style.display="none"; 
+  alarmSound.pause(); 
+  alarmSound.currentTime=0;
+};
+
+updateCustomDisplays();
+updateDisplay(totalSeconds);
+updateKuromiMessage("pomodoro");
+</script>
+</body>
+</html>
